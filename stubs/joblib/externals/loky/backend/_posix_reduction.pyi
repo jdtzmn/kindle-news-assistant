@@ -1,0 +1,9 @@
+from .context import get_spawning_popen as get_spawning_popen
+from .reduction import register as register
+from typing import Any
+
+HAVE_SEND_HANDLE: Any
+
+def DupFd(fd: Any): ...
+def reduce_connection(conn: Any): ...
+def rebuild_connection(df: Any, readable: Any, writable: Any): ...

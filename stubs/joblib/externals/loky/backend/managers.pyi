@@ -1,0 +1,6 @@
+from multiprocessing.managers import SyncManager
+from typing import Any, Optional
+
+class LokyManager(SyncManager):
+    shutdown: Any = ...
+    def start(self, initializer: Optional[Any] = ..., initargs: Any = ...) -> None: ...

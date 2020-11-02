@@ -1,8 +1,9 @@
+from typing import List
 from kindle_news_assistant.top_words import words as common_words
 
 feature_length = 30
 
-def extract_words(article):
+def extract_words(article: str):
   """Extract the most unique words from an article and pad to `feature_length` if necessary
 
   :param article: The article or article description
@@ -15,7 +16,7 @@ def extract_words(article):
   padded = numbered_article + [0] * max(0, feature_length - len(numbered_article))
   return padded[:feature_length]
 
-def article_to_numbers(article):
+def article_to_numbers(article: str):
   """Convert an article or article description to a list of numbers
 
   :param article: The article or article description
@@ -24,7 +25,7 @@ def article_to_numbers(article):
   :rtype: int[]
   """
 
-  numbers = []
+  numbers: List[int] = []
   article_words = article.strip(',:.-()\'"?!').lower().split(" ")
 
   while len(article_words) > 0:
@@ -48,7 +49,7 @@ def numbers_to_words(numbers):
   :rtype: string[]
   """
   remaining = numbers[:]
-  words = []
+  words: List[str] = []
   
   while len(remaining) > 0:
     current = remaining.pop(0)

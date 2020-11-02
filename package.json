@@ -1,0 +1,11 @@
+{
+  "name": "kindle-news-assistant",
+  "version": "1.0.0",
+  "scripts": {
+    "install": "pip install -r requirements.txt",
+    "typecheck": "mypy application.py"
+  },
+  "repository": "https://github.com/jdtzmn/kindle-news-assistant",
+  "author": "jdtzmn <jdtzmn@gmail.com>",
+  "license": "MIT"
+}

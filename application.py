@@ -5,7 +5,7 @@ from kindle_news_assistant.model.test import start_test
 @click.command()
 @click.option('--train', is_flag=True, help="Train the assistant model.")
 @click.option('--test', is_flag=True, help="Preview a list compiled by the assistant model.")
-def run(train, test):
+def run(train: bool, test: bool):
   if train:
     start_training()
   elif test:

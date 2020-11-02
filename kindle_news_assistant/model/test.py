@@ -1,8 +1,7 @@
 import os
-import click
-from bs4 import BeautifulSoup
 from kindle_news_assistant.agent import Agent
 from kindle_news_assistant.history import History
+from sklearn.linear_model import SGDClassifier # type: ignore
 from joblib import load
 
 dirname = os.path.dirname(__file__)
@@ -18,7 +17,7 @@ def start_test():
   if not os.path.isfile(absolute_path): # model doesn't exist
     raise LookupError()
 
-  clf = load(absolute_path)
+  clf: SGDClassifier = load(absolute_path)
   entries = agent.batch(False, clf)
 
   for entry in entries:

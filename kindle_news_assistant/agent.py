@@ -1,4 +1,7 @@
+from typing import List, Optional
+from feedparser.util import FeedParserDict
 from kindle_news_assistant.word_extractor import extract_words
+from sklearn.linear_model import SGDClassifier # type: ignore
 import os
 import random
 import feedparser
@@ -28,25 +31,25 @@ class Agent:
 
     :return: All of the posts from the articles
     """
-    posts = []
+    posts: List[FeedParserDict] = []
     for url in self.feeds:
       posts.extend(feedparser.parse(url).entries)
 
     return posts
 
-  def filter_by_unread(self, posts):
+  def filter_by_unread(self, posts: List[FeedParserDict]):
     """Filter articles by articles which have not been read
 
     :param posts: A list of all of the articles
     :return: A list of the articles that have not been read
     """
-    filtered = []
+    filtered: List[FeedParserDict] = []
     for post in posts:
       if not self.history.contains(post.id):
         filtered.append(post)
     return filtered
 
-  def filter_by_model(self, posts, model):
+  def filter_by_model(self, posts: List[FeedParserDict], model):
     filtered = []
     for post in posts:
       soup = BeautifulSoup(post.summary, 'html.parser')
@@ -56,16 +59,15 @@ class Agent:
         filtered.append(post)
     return filtered
 
-  def batch(self, mark = True, model = None, size = BatchSize):
+  def batch(self, mark: Optional[bool] = True, model: Optional[SGDClassifier] = None, size: Optional[int] = BatchSize):
     """Fetch a batch of articles that are shuffled and filtered by unread
 
     :param mark: Whether to mark the batch as read, defaults to True
-    :type mark: boolean, optional
     :param size: The size of the batch, defaults to BatchSize
     :type size: int, optional
     :return: A list of articles
     """
-    posts = self.fetch()
+    posts: List[FeedParserDict] = self.fetch()
     self.history.remove_ids_other_than([post.id for post in posts])
     posts = self.filter_by_unread(posts)
     if model is not None:

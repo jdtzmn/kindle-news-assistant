@@ -1,0 +1,9 @@
+from .. import util as util
+from typing import Any
+
+class Namespace:
+    supported_namespaces: Any = ...
+    psc_chapters_flag: bool = ...
+    def __init__(self) -> None: ...
+
+format_: Any

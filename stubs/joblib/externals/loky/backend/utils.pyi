@@ -1,0 +1,6 @@
+from typing import Any
+
+WIN32: Any
+
+def recursive_terminate(process: Any, use_psutil: bool = ...) -> None: ...
+def get_exitcodes_terminated_worker(processes: Any): ...

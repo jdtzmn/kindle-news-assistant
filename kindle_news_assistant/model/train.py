@@ -1,20 +1,20 @@
 import os
+from typing import List
 import click
 from bs4 import BeautifulSoup
+from feedparser.util import FeedParserDict
 from kindle_news_assistant.word_extractor import extract_words
 from kindle_news_assistant.agent import Agent
 from kindle_news_assistant.history import History
 from kindle_news_assistant.word_extractor import extract_words
-from sklearn.linear_model import SGDClassifier
-# from sklearn.preprocessing import StandardScaler
-# from sklearn.pipeline import make_pipeline
+from sklearn.linear_model import SGDClassifier # type: ignore
 from joblib import dump, load
 
 dirname = os.path.dirname(__file__)
 relative_path = "../../userdata/model.joblib"
 absolute_path = os.path.join(dirname, relative_path)
 
-def start_training():
+def start_training() -> None:
   """Start the assistant model's training
   """
   history = History()
@@ -25,7 +25,7 @@ def start_training():
   (X, y) = format_for_training(yes, no)
   
   if os.path.isfile(absolute_path): # model exists
-    clf = load(absolute_path)
+    clf: SGDClassifier = load(absolute_path)
     clf.partial_fit(X, y)
     dump(clf, absolute_path)
   else:
@@ -33,17 +33,15 @@ def start_training():
     clf.fit(X, y)
     dump(clf, absolute_path)
 
-def classify_articles(entries, history):
+def classify_articles(entries: List[FeedParserDict], history: History):
   """Run the user through a number of yes/no choices to determine which articles they would read
 
   :param entries: The articles being classified
   :param history: The history class instance
-  :type history: History
   :return: A yes, no tuple of entries that were labelled yes and entries that were labelled no
-  :rtype: Tuple[List, List]
   """
-  yes = []
-  no = []
+  yes: List[FeedParserDict] = []
+  no: List[FeedParserDict] = []
 
   for (index, entry) in enumerate(entries):
     click.clear()
@@ -69,20 +67,19 @@ def format_for_training(yes, no):
   :param yes: The list of articles that the user would read
   :param no: The list of the articles that the user would not read
   """
-  X = []
-  y = []
+  X: List[int] = []
+  y: List[int] = [] # 0 or 1
 
   format_helper(yes, 1, X, y)
   format_helper(no, 0, X, y)
 
   return (X, y)
 
-def format_helper(list, output, X, y):
+def format_helper(list, output: int, X, y):
   """A helper for the `format_for_training` method
 
   :param list: The yes/no list
-  :param output: The class for this list to be associated with
-  :type output: int
+  :param output: The class for this list to be associated with (0 or 1)
   :param X: A list of the input features
   :param y: A list of the output classes
   """

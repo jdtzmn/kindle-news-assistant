@@ -1,0 +1,3 @@
+from typing import Any
+
+def registerDateHandler(func: Any) -> None: ...
