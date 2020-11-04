@@ -38,3 +38,4 @@ jobs:
           yarn lint:py
           yarn lint:types
           yarn lint:docs
+          yarn lint:prettier

@@ -3,11 +3,14 @@
   "version": "1.0.0",
   "scripts": {
     "install": "pip install -r requirements.txt",
-    "lint": "concurrently --kill-others-on-fail \"npm:lint:py\" \"npm:lint:types\" \"npm:lint:docs\"",
+    "lint": "concurrently --kill-others-on-fail \"npm:lint:py\" \"npm:lint:types\" \"npm:lint:docs\" \"npm:lint:prettier\"",
     "lint:py": "pylint main.py kindle_news_assistant/*.py kindle_news_assistant/**/*.py",
     "lint:types": "mypy main.py kindle_news_assistant/*.py kindle_news_assistant/**/*.py",
     "lint:docs": "pydocstyle main.py kindle_news_assistant/*.py kindle_news_assistant/**/*.py",
-    "format": "black main.py kindle_news_assistant/*.py kindle_news_assistant/**/*.py"
+    "lint:prettier": "prettier --check *.json  **/*.{json,yml}",
+    "format": "concurrently --kill-others-on-fail \"npm:format:py\" \"npm:format:prettier\"",
+    "format:py": "black main.py kindle_news_assistant/*.py kindle_news_assistant/**/*.py",
+    "format:prettier": "prettier --write *.json  **/*.{json,yml}"
   },
   "repository": "https://github.com/jdtzmn/kindle-news-assistant",
   "author": "jdtzmn <jdtzmn@gmail.com>",
