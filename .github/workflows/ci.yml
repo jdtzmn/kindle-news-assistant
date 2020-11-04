@@ -18,11 +18,23 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Set up Node.js
         uses: actions/setup-node@v1
+      - name: Get yarn cache directory path
+        id: yarn-cache-dir-path
+        run: echo "::set-output name=dir::$(yarn cache dir)"
+      - name: Cache yarn and pip dependencies
+        uses: actions/cache@v2
+        with:
+          path: |
+            ${{ steps.yarn-cache-dir-path.outputs.dir }} # yarn
+            ~/.cache/pip                                 # pip
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
       - name: Install all dependencies
         run: |
-          npm install
+          yarn install
       - name: Lint Python files
         run: |
-          npm run lint:py
-          npm run lint:types
-          npm run lint:docs
+          yarn lint:py
+          yarn lint:types
+          yarn lint:docs
