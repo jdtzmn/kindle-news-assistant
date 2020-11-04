@@ -1,5 +1,11 @@
 {
+  "python.pythonPath": "venv/bin/python3",
   "python.linting.pylintEnabled": true,
   "python.linting.mypyEnabled": true,
-  "python.linting.enabled": true
+  "python.linting.pydocstyleEnabled": true,
+  "python.linting.enabled": true,
+  "editor.formatOnSave": true,
+  "editor.formatOnPaste": true,
+  "python.formatting.provider": "black",
+  "editor.tabSize": 4
 }
