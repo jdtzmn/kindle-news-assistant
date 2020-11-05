@@ -1,6 +1,7 @@
 """Keep track of articles that have been read previously."""
 import os
 from typing import List
+from kindle_news_assistant.safe_open import safe_open
 
 dirname = os.path.dirname(__file__)
 RELATIVE_PATH = "../userdata/history.txt"
@@ -10,9 +11,12 @@ absolute_path = os.path.join(dirname, RELATIVE_PATH)
 class History:
     """A class for keeping track of articles that have already been read."""
 
-    def __init__(self):
-        """Initialize the History class."""
-        self.history_file = open(absolute_path, "a+")
+    def __init__(self, history_file_path: str = absolute_path):
+        """Initialize the History class.
+
+        :param history_file_path: The file path
+        """
+        self.history_file = safe_open(history_file_path, "a+")
         content = self.history_file.read()
         self.history_fileeeds = content.split("\n")
 

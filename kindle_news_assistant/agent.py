@@ -6,6 +6,7 @@ import feedparser
 from feedparser.util import FeedParserDict
 from sklearn.linear_model import SGDClassifier  # type: ignore
 from bs4 import BeautifulSoup
+from kindle_news_assistant.safe_open import safe_open
 from kindle_news_assistant.history import History
 from kindle_news_assistant.word_extractor import extract_words
 
@@ -26,7 +27,7 @@ class Agent:
         """
         self.history = history
 
-        feeds_file = open(absolute_path, "r")
+        feeds_file = safe_open(absolute_path, "r")
         content = feeds_file.read()
         feeds_file.close()
         self.feeds = content.split("\n")

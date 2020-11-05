@@ -2,14 +2,16 @@
   "name": "kindle-news-assistant",
   "version": "1.0.0",
   "scripts": {
+    "start": "python main.py",
+    "test": "pytest tests",
     "install": "pip install -r requirements.txt",
     "lint": "concurrently --kill-others-on-fail \"npm:lint:py\" \"npm:lint:types\" \"npm:lint:docs\" \"npm:lint:prettier\"",
-    "lint:py": "pylint main.py kindle_news_assistant/*.py kindle_news_assistant/**/*.py",
-    "lint:types": "mypy main.py kindle_news_assistant/*.py kindle_news_assistant/**/*.py",
-    "lint:docs": "pydocstyle main.py kindle_news_assistant/*.py kindle_news_assistant/**/*.py",
+    "lint:py": "pylint *.py kindle_news_assistant",
+    "lint:types": "mypy *.py kindle_news_assistant tests",
+    "lint:docs": "pydocstyle *.py kindle_news_assistant",
     "lint:prettier": "prettier --check *.json  **/*.{json,yml}",
     "format": "concurrently --kill-others-on-fail \"npm:format:py\" \"npm:format:prettier\"",
-    "format:py": "black main.py kindle_news_assistant/*.py kindle_news_assistant/**/*.py",
+    "format:py": "black *.py kindle_news_assistant tests",
     "format:prettier": "prettier --write *.json  **/*.{json,yml}"
   },
   "repository": "https://github.com/jdtzmn/kindle-news-assistant",
@@ -24,8 +26,10 @@
     "*.{js,json,yml}": "prettier --write",
     "*.py": [
       "black",
+      "mypy"
+    ],
+    "**/!(tests)/*.py": [
       "pylint",
-      "mypy",
       "pydocstyle"
     ]
   },
