@@ -1,0 +1,3 @@
+from typing import Any
+
+def random_index_based_on_weights(weights: Any, random_state: Any): ...

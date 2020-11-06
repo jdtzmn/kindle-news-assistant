@@ -4,7 +4,7 @@ from sklearn.linear_model import SGDClassifier  # type: ignore
 from joblib import dump, load
 
 dirname = os.path.dirname(__file__)
-RELATIVE_PATH = "../../userdata/model.joblib"
+RELATIVE_PATH = "../userdata/model.joblib"
 absolute_path = os.path.join(dirname, RELATIVE_PATH)
 
 

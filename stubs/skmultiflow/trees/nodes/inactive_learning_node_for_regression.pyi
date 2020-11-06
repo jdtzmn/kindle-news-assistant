@@ -1,0 +1,6 @@
+from skmultiflow.trees.nodes import InactiveLearningNode as InactiveLearningNode
+from typing import Any
+
+class InactiveLearningNodeForRegression(InactiveLearningNode):
+    def __init__(self, initial_class_observations: Any) -> None: ...
+    def learn_from_instance(self, X: Any, y: Any, weight: Any, ht: Any) -> None: ...

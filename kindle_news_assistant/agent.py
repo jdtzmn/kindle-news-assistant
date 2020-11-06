@@ -4,7 +4,7 @@ import os
 import random
 import feedparser
 from feedparser.util import FeedParserDict
-from sklearn.linear_model import SGDClassifier  # type: ignore
+from skmultiflow.neural_networks import PerceptronMask
 from bs4 import BeautifulSoup
 from kindle_news_assistant.safe_open import safe_open
 from kindle_news_assistant.history import History
@@ -56,7 +56,7 @@ class Agent:
         return filtered
 
     @staticmethod
-    def filter_by_model(posts: List[FeedParserDict], model: SGDClassifier):
+    def filter_by_model(posts: List[FeedParserDict], model: PerceptronMask):
         """Filter articles by using the learned classification model.
 
         :param posts: A list of all the articles
@@ -75,7 +75,7 @@ class Agent:
     def batch(
         self,
         mark: Optional[bool] = True,
-        model: Optional[SGDClassifier] = None,
+        model: Optional[PerceptronMask] = None,
         size: Optional[int] = BatchSize,
     ):
         """Fetch a batch of articles that are shuffled and filtered by unread.

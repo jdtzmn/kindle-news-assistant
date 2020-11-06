@@ -1,0 +1,1 @@
+from .very_fast_decision_rules import VFDR as VFDR, VeryFastDecisionRulesClassifier as VeryFastDecisionRulesClassifier

@@ -3,7 +3,7 @@ from typing import List
 import click
 from bs4 import BeautifulSoup
 from feedparser.util import FeedParserDict
-from sklearn.linear_model import SGDClassifier  # type: ignore
+from skmultiflow.neural_networks import PerceptronMask
 from kindle_news_assistant.word_extractor import article_to_frequency
 from kindle_news_assistant.agent import Agent
 from kindle_news_assistant.history import History
@@ -20,13 +20,13 @@ def start_training() -> None:
     (X, y) = format_for_training(yes, no)  # pylint: disable=invalid-name
 
     if model_exists():  # model exists
-        clf: SGDClassifier = load_model()
-        clf.partial_fit(X, y)
-        store_model(clf)
+        perceptron: PerceptronMask = load_model()
+        perceptron.partial_fit(X, y)
+        store_model(perceptron)
     else:
-        clf = SGDClassifier()
-        clf.fit(X, y)
-        store_model(clf)
+        perceptron = PerceptronMask()
+        perceptron.fit(X, y)
+        store_model(perceptron)
 
 
 def classify_articles(entries: List[FeedParserDict], history: History):
