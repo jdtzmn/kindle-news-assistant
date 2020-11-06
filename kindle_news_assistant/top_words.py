@@ -8,4 +8,5 @@ top_words_file = open(absolute_path, "r")
 content = top_words_file.read()
 top_words_file.close()
 
-words = content.split("\n")  # The top words from the google-10000-english list
+# Remove the last element because it is the empty string
+words = content.split("\n")[:-1]  # The top words from the google-10000-english 20k list

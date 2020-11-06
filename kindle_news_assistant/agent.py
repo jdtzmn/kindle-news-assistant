@@ -8,7 +8,7 @@ from sklearn.linear_model import SGDClassifier  # type: ignore
 from bs4 import BeautifulSoup
 from kindle_news_assistant.safe_open import safe_open
 from kindle_news_assistant.history import History
-from kindle_news_assistant.word_extractor import extract_words
+from kindle_news_assistant.word_extractor import article_to_frequency
 
 dirname = os.path.dirname(__file__)
 RELATIVE_PATH = "../userdata/feeds.txt"
@@ -56,7 +56,7 @@ class Agent:
         return filtered
 
     @staticmethod
-    def filter_by_model(posts: List[FeedParserDict], model):
+    def filter_by_model(posts: List[FeedParserDict], model: SGDClassifier):
         """Filter articles by using the learned classification model.
 
         :param posts: A list of all the articles
@@ -67,7 +67,7 @@ class Agent:
         for post in posts:
             soup = BeautifulSoup(post.summary, "html.parser")
             summary_text = soup.get_text()
-            rating = model.predict([extract_words(summary_text)])[0]
+            rating = model.predict([article_to_frequency(summary_text)])[0]
             if rating == 1:
                 filtered.append(post)
         return filtered

@@ -4,7 +4,7 @@ import click
 from bs4 import BeautifulSoup
 from feedparser.util import FeedParserDict
 from sklearn.linear_model import SGDClassifier  # type: ignore
-from kindle_news_assistant.word_extractor import extract_words
+from kindle_news_assistant.word_extractor import article_to_frequency
 from kindle_news_assistant.agent import Agent
 from kindle_news_assistant.history import History
 from kindle_news_assistant.model_storage import model_exists, load_model, store_model
@@ -87,7 +87,7 @@ def format_helper(article_list, output: int, X, y):  # pylint: disable=invalid-n
         soup = BeautifulSoup(article.summary, "html.parser")
         text_value = soup.get_text()
         spaced = text_value.replace("\n", " ")
-        article_x = extract_words(spaced)
+        article_x = article_to_frequency(spaced)
         article_y = output
         X.append(article_x)
         y.append(article_y)

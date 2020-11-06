@@ -5,7 +5,7 @@ from kindle_news_assistant.history import History
 
 @pytest.fixture
 def history_instance(tmpdir):
-    absolute_path = os.path.join(os.path.normpath(tmpdir), "userdata/history.txt")
+    absolute_path = os.path.join(str(tmpdir), "userdata/history.txt")
     return History(absolute_path)
 
 
