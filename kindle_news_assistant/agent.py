@@ -81,8 +81,8 @@ class Agent:
         """Fetch a batch of articles that are shuffled and filtered by unread.
 
         :param mark: Whether to mark the batch as read, defaults to True
+        :param model: The learned article classification model
         :param size: The size of the batch, defaults to BatchSize
-        :type size: int, optional
         :return: A list of articles
         """
         posts: List[FeedParserDict] = self.fetch()

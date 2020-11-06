@@ -5,10 +5,11 @@
     "start": "python main.py",
     "test": "pytest tests",
     "install": "pip install -r requirements.txt",
-    "lint": "concurrently --kill-others-on-fail \"npm:lint:py\" \"npm:lint:types\" \"npm:lint:docs\" \"npm:lint:prettier\"",
+    "lint": "concurrently --kill-others-on-fail \"npm:lint:py\" \"npm:lint:types\" \"npm:lint:docs\" \"npm:lint:args\" \"npm:lint:prettier\"",
     "lint:py": "pylint *.py kindle_news_assistant",
     "lint:types": "mypy *.py kindle_news_assistant tests",
     "lint:docs": "pydocstyle *.py kindle_news_assistant",
+    "lint:args": "darglint *.py kindle_news_assistant",
     "lint:prettier": "prettier --check *.json  **/*.{json,yml}",
     "format": "concurrently --kill-others-on-fail \"npm:format:py\" \"npm:format:prettier\"",
     "format:py": "black *.py kindle_news_assistant tests",
@@ -30,7 +31,8 @@
     ],
     "**/!(tests)/*.py": [
       "pylint",
-      "pydocstyle"
+      "pydocstyle",
+      "darglint"
     ]
   },
   "devDependencies": {

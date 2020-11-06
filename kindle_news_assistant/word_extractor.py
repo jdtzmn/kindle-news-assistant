@@ -29,7 +29,8 @@ def numbers_to_words(frequency: List[int]) -> List[str]:
 
     This is intended to only be used for testing/debugging.
 
-    :param frequency: A list of numbers
+    :param frequency: A list of frequencies of words.
+        An index in the array is the index of the word in the google top words list
     :return: A list of words
     """
     filtered = [index for (index, value) in enumerate(frequency) if not value == 0]

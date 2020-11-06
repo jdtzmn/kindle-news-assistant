@@ -60,13 +60,16 @@ def classify_articles(entries: List[FeedParserDict], history: History):
     return (yes, no)
 
 
-def format_for_training(yes, no):  # pylint: disable=invalid-name
+def format_for_training(
+    yes: List[FeedParserDict], no: List[FeedParserDict]
+):  # pylint: disable=invalid-name
     """Format the yes/no articles in preparation for training.
 
     :param yes: The list of articles that the user would read
     :param no: The list of the articles that the user would not read
+    :return: A formatted tuple for training the model, formatted as (X, y)
     """
-    X: List[int] = []  # pylint: disable=invalid-name
+    X: List[List[int]] = []  # pylint: disable=invalid-name
     y: List[int] = []  # 0 or 1 # pylint: disable=invalid-name
 
     format_helper(yes, 1, X, y)
@@ -75,11 +78,14 @@ def format_for_training(yes, no):  # pylint: disable=invalid-name
     return (X, y)
 
 
-def format_helper(article_list, output: int, X, y):  # pylint: disable=invalid-name
+def format_helper(
+    article_list: List[FeedParserDict], output: int, X: List[List[int]], y: List[int]
+):  # pylint: disable=invalid-name
     """Help the `format_for_training` method group articles for training.
 
-    :param list: The yes/no list
+    :param article_list: A list of feedparser articles
     :param output: The class for this list to be associated with (0 or 1)
+        1 is would read and 0 is would not read
     :param X: A list of the input features
     :param y: A list of the output classes
     """

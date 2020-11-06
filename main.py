@@ -14,7 +14,6 @@ def run(train: bool, test: bool):
     """Start the application.
 
     :param train: A flag that indicates whether to train the model
-    :type train: bool
     :param test: A flag that indicates whether to test the model
     :type test: bool
     """

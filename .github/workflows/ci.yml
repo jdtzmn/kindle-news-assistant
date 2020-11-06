@@ -38,6 +38,7 @@ jobs:
           yarn lint:py
           yarn lint:types
           yarn lint:docs
+          yarn lint:args
           yarn lint:prettier
       - name: Run tests
         run: yarn test

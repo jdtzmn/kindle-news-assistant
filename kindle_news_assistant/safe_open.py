@@ -4,7 +4,10 @@ import errno
 
 
 def mkdirs(path: str):
-    """Make directories as needed – used in the safe_open method."""
+    """Make directories as needed – used in the safe_open method.
+
+    :param path: The path of a file or directories to create
+    """
     try:
         os.makedirs(path)
     except OSError as exc:
@@ -15,6 +18,11 @@ def mkdirs(path: str):
 
 
 def safe_open(path: str, mode: str):
-    """Open "path" for writing, creating any parent directories as needed."""
+    """Open "path" for writing, creating any parent directories as needed.
+
+    :param path: The path of a file to open
+    :param mode: The mode, as described by the python built-in `open` function
+    :return: The opened file, using python's built-in `open` function
+    """
     mkdirs(os.path.dirname(path))
     return open(path, mode)
