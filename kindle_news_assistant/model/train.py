@@ -19,14 +19,25 @@ def start_training() -> None:
     (yes, no) = classify_articles(entries, history)  # pylint: disable=invalid-name
     (X, y) = format_for_training(yes, no)  # pylint: disable=invalid-name
 
-    if model_exists():  # model exists
+    if model_exists():
         perceptron: PerceptronMask = load_model()
+
+        # Log accuracy
+        accuracy = calculate_accuracy(yes, no, perceptron)
+        print("Accuracy:")
+        percentage_str = str(int(accuracy * 100))
+        print(percentage_str + "%")
+
+        # Update model
         perceptron.partial_fit(X, y)
-        store_model(perceptron)
     else:
         perceptron = PerceptronMask()
+
+        # Fit model
         perceptron.fit(X, y)
-        store_model(perceptron)
+
+    print("Saving model...")
+    store_model(perceptron)
 
 
 def classify_articles(entries: List[FeedParserDict], history: History):
@@ -41,7 +52,7 @@ def classify_articles(entries: List[FeedParserDict], history: History):
 
     for (index, entry) in enumerate(entries):
         click.clear()
-        position_text = str(index + 1) + " of " + str(Agent.BatchSize)
+        position_text = str(index + 1) + " of " + str(len(entries))
         click.echo(click.style(entry.title, bold=True) + " (" + position_text + ")\n")
         soup = BeautifulSoup(entry.summary, "html.parser")
         summary_text = soup.get_text()
@@ -97,3 +108,37 @@ def format_helper(
         article_y = output
         X.append(article_x)
         y.append(article_y)
+
+
+def calculate_accuracy(  # pylint: disable=invalid-name
+    yes: List[FeedParserDict],
+    no: List[FeedParserDict],
+    perceptron: PerceptronMask,
+) -> float:
+    """Calculate the accuracy of the inputted perceptron model.
+
+    :param yes: The articles which the user liked
+    :param no: The articles which the user disliked
+    :param perceptron: The perceptron model used for classification
+    :return: The accuracy of the current model
+    """
+    # Predict the "yes" articles using the model
+    entries = yes + no
+    predicted_correct = Agent.filter_by_model(entries, perceptron)
+
+    # We'll add correct yes articles and subtract incorrect no articles
+    correct = len(no)
+
+    for true_yes in yes:
+        for predicted_yes in predicted_correct:
+            if true_yes.title == predicted_yes.title:
+                correct += 1
+                continue
+
+    for true_no in no:
+        for predicted_yes in predicted_correct:
+            if true_no.title == predicted_yes.title:  # Incorrect classification
+                correct -= 1
+                continue
+
+    return correct / len(entries)
