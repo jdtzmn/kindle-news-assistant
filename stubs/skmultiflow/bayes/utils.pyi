@@ -1,3 +1,0 @@
-from typing import Any
-
-def do_naive_bayes_prediction(X: Any, observed_class_distribution: dict, attribute_observers: dict) -> Any: ...

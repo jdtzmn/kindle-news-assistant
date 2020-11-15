@@ -1,4 +1,0 @@
-from .instance_conditional_test import InstanceConditionalTest as InstanceConditionalTest
-from .nominal_attribute_binary_test import NominalAttributeBinaryTest as NominalAttributeBinaryTest
-from .nominal_attribute_multiway_test import NominalAttributeMultiwayTest as NominalAttributeMultiwayTest
-from .numeric_attribute_binary_test import NumericAttributeBinaryTest as NumericAttributeBinaryTest

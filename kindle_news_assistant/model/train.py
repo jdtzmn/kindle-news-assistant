@@ -1,13 +1,14 @@
 """The main method for training the article classification model."""
 from typing import List
 import click
-from bs4 import BeautifulSoup
 from feedparser.util import FeedParserDict
-from skmultiflow.neural_networks import PerceptronMask
+from sklearn.neural_network import MLPRegressor  # type:ignore
 from kindle_news_assistant.word_extractor import article_to_frequency
 from kindle_news_assistant.agent import Agent
 from kindle_news_assistant.history import History
 from kindle_news_assistant.model_storage import model_exists, load_model, store_model
+
+SUMMARY_TEXT_LIMIT = 150  # characters
 
 
 def start_training() -> None:
@@ -19,8 +20,10 @@ def start_training() -> None:
     (yes, no) = classify_articles(entries, history)  # pylint: disable=invalid-name
     (X, y) = format_for_training(yes, no)  # pylint: disable=invalid-name
 
+    print("Training model...")
+
     if model_exists():
-        perceptron: PerceptronMask = load_model()
+        perceptron: MLPRegressor = load_model()
 
         # Log accuracy
         accuracy = calculate_accuracy(yes, no, perceptron)
@@ -31,7 +34,11 @@ def start_training() -> None:
         # Update model
         perceptron.partial_fit(X, y)
     else:
-        perceptron = PerceptronMask()
+        perceptron = MLPRegressor(
+            hidden_layer_sizes=(11, 5),
+            solver="sgd",
+            max_iter=1000,
+        )
 
         # Fit model
         perceptron.fit(X, y)
@@ -54,9 +61,13 @@ def classify_articles(entries: List[FeedParserDict], history: History):
         click.clear()
         position_text = str(index + 1) + " of " + str(len(entries))
         click.echo(click.style(entry.title, bold=True) + " (" + position_text + ")\n")
-        soup = BeautifulSoup(entry.summary, "html.parser")
-        summary_text = soup.get_text()
-        print(summary_text + "\n")
+        summary_text = Agent.get_summary_text(entry)
+        truncated_summary = (
+            (summary_text[: SUMMARY_TEXT_LIMIT - 3] + "...")
+            if len(summary_text) > SUMMARY_TEXT_LIMIT
+            else summary_text
+        )
+        print(truncated_summary)
 
         would_read = click.confirm(
             click.style("Would you read this article?", fg="green")
@@ -84,7 +95,7 @@ def format_for_training(
     y: List[int] = []  # 0 or 1 # pylint: disable=invalid-name
 
     format_helper(yes, 1, X, y)
-    format_helper(no, 0, X, y)
+    format_helper(no, -1, X, y)
 
     return (X, y)
 
@@ -101,8 +112,7 @@ def format_helper(
     :param y: A list of the output classes
     """
     for article in article_list:
-        soup = BeautifulSoup(article.summary, "html.parser")
-        text_value = soup.get_text()
+        text_value = article.title + " " + Agent.get_summary_text(article)
         spaced = text_value.replace("\n", " ")
         article_x = article_to_frequency(spaced)
         article_y = output
@@ -113,7 +123,7 @@ def format_helper(
 def calculate_accuracy(  # pylint: disable=invalid-name
     yes: List[FeedParserDict],
     no: List[FeedParserDict],
-    perceptron: PerceptronMask,
+    perceptron: MLPRegressor,
 ) -> float:
     """Calculate the accuracy of the inputted perceptron model.
 

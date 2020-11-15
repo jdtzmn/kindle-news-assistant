@@ -1,6 +1,0 @@
-from skmultiflow.trees.nodes import Node as Node
-from typing import Any, Optional
-
-class LearningNode(Node):
-    def __init__(self, initial_class_observations: Optional[Any] = ...) -> None: ...
-    def learn_from_instance(self, X: Any, y: Any, weight: Any, ht: Any) -> None: ...

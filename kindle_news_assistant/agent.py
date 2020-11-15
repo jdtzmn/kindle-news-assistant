@@ -4,8 +4,9 @@ import os
 import random
 import feedparser
 from feedparser.util import FeedParserDict
-from skmultiflow.neural_networks import PerceptronMask
+from sklearn.neural_network import MLPRegressor  # type: ignore
 from bs4 import BeautifulSoup
+from tqdm import tqdm
 from kindle_news_assistant.safe_open import safe_open
 from kindle_news_assistant.history import History
 from kindle_news_assistant.word_extractor import article_to_frequency
@@ -37,8 +38,10 @@ class Agent:
 
         :return: All of the posts from the articles
         """
+        print("Fetching articles...")
         posts: List[FeedParserDict] = []
-        for url in self.feeds:
+
+        for url in tqdm(self.feeds):
             posts.extend(feedparser.parse(url).entries)
 
         return posts
@@ -56,26 +59,43 @@ class Agent:
         return filtered
 
     @staticmethod
-    def filter_by_model(posts: List[FeedParserDict], model: PerceptronMask):
+    def get_summary_text(post: FeedParserDict):
+        """Extract summary text from an article.
+
+        :param post: The article to extract summary data from
+        :return: The article's summary
+        """
+        soup = BeautifulSoup(post.summary, "html.parser")
+        summary_text = soup.get_text()
+        return summary_text
+
+    @staticmethod
+    def filter_by_model(posts: List[FeedParserDict], model: MLPRegressor):
         """Filter articles by using the learned classification model.
 
-        :param posts: A list of all the articles
+        :param posts: The articles
         :param model: The learned classification model
-        :return: A list of articles that were approved by the classification model
+        :return: Articles that were approved by the classification model, in recommended order
         """
+        frequencies = [
+            article_to_frequency(Agent.get_summary_text(post)) for post in posts
+        ]
+        ratings = model.predict(frequencies)
+
         filtered = []
-        for post in posts:
-            soup = BeautifulSoup(post.summary, "html.parser")
-            summary_text = soup.get_text()
-            rating = model.predict([article_to_frequency(summary_text)])[0]
-            if rating == 1:
+        for (rating, post) in sorted(
+            zip(ratings, posts), reverse=True, key=lambda pair: pair[0]
+        ):
+            print(rating)
+            if rating >= 0:
                 filtered.append(post)
+
         return filtered
 
     def batch(
         self,
         mark: Optional[bool] = True,
-        model: Optional[PerceptronMask] = None,
+        model: Optional[MLPRegressor] = None,
         size: Optional[int] = BatchSize,
     ):
         """Fetch a batch of articles that are shuffled and filtered by unread.
