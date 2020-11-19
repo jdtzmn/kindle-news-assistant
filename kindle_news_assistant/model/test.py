@@ -13,15 +13,10 @@ def start_test():
     perceptron: MLPRegressor = load_model()
     posts = agent.fetch()
 
-    filtered = agent.filter_by_model(posts, perceptron)
-    complement = [
-        article
-        for article in posts
-        if not article.title in [post.title for post in filtered]
-    ]
+    (filtered, complement) = agent.filter_by_model(posts, perceptron, True)
 
-    print("Model would not suggest:")
+    print("Model would not suggest: " + str(len(complement)))
     print([article.title for article in complement])
     print("")
-    print("Model would suggest:")
+    print("Model would suggest: " + str(len(filtered)))
     print([article.title for article in filtered])

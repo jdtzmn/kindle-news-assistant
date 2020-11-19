@@ -1,5 +1,5 @@
 """Fetch articles from the feeds in `feeds.txt`."""
-from typing import List, Optional
+from typing import List, Optional, Union, Tuple, overload
 import os
 import random
 import feedparser
@@ -70,12 +70,36 @@ class Agent:
         return summary_text
 
     @staticmethod
-    def filter_by_model(posts: List[FeedParserDict], model: MLPRegressor):
+    @overload
+    def filter_by_model(
+        posts: List[FeedParserDict], model: MLPRegressor
+    ) -> List[FeedParserDict]:  # noqa: D102
+        ...
+
+    @staticmethod
+    @overload
+    def filter_by_model(
+        posts: List[FeedParserDict], model: MLPRegressor, include_complement: bool
+    ) -> Union[
+        List[FeedParserDict], Tuple[List[FeedParserDict], List[FeedParserDict]]
+    ]:  # noqa: D102
+        ...
+
+    @staticmethod
+    def filter_by_model(
+        posts: List[FeedParserDict],
+        model: MLPRegressor,
+        include_complement: Optional[bool] = False,
+    ) -> Union[List[FeedParserDict], Tuple[List[FeedParserDict], List[FeedParserDict]]]:
         """Filter articles by using the learned classification model.
 
         :param posts: The articles
         :param model: The learned classification model
-        :return: Articles that were approved by the classification model, in recommended order
+        :param include_complement: Whether to include articles that would not be
+            recommended, defaults to False
+        :return: Articles that were approved by the classification model, in recommended order.
+            Will return a tuple with filtered and complement articles if `include_complement`
+            flag is set to True.
         """
         frequencies = [
             article_to_frequency(Agent.get_summary_text(post)) for post in posts
@@ -83,14 +107,17 @@ class Agent:
         ratings = model.predict(frequencies)
 
         filtered = []
+        complement = []
         for (rating, post) in sorted(
             zip(ratings, posts), reverse=True, key=lambda pair: pair[0]
         ):
             print(rating)
             if rating >= 0:
                 filtered.append(post)
+            else:
+                complement.append(post)
 
-        return filtered
+        return (filtered, complement) if include_complement else filtered
 
     def batch(
         self,
@@ -109,7 +136,7 @@ class Agent:
         self.history.remove_ids_other_than([post.id for post in posts])
         posts = self.filter_by_unread(posts)
         if model is not None:
-            posts = self.filter_by_model(posts, model)
+            posts = Agent.filter_by_model(posts, model)
         random.shuffle(posts)
         limited = posts[:size]
         if mark:

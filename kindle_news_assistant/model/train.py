@@ -8,7 +8,7 @@ from kindle_news_assistant.agent import Agent
 from kindle_news_assistant.history import History
 from kindle_news_assistant.model_storage import model_exists, load_model, store_model
 
-SUMMARY_TEXT_LIMIT = 150  # characters
+SUMMARY_TEXT_LIMIT = 450  # characters
 
 
 def start_training() -> None:
