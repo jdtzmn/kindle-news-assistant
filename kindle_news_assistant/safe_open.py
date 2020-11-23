@@ -7,6 +7,7 @@ def mkdirs(path: str):
     """Make directories as needed – used in the safe_open method.
 
     :param path: The path of a file or directories to create
+    :raises OSError: An exception was raised while creating the directories
     """
     try:
         os.makedirs(path)
