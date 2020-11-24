@@ -1,23 +1,22 @@
 """The main method for training the article classification model."""
 from typing import List
 import click
-from feedparser.util import FeedParserDict
+from newspaper.article import Article
 from sklearn.neural_network import MLPRegressor  # type:ignore
 from kindle_news_assistant.word_extractor import article_to_frequency
 from kindle_news_assistant.agent import Agent
-from kindle_news_assistant.history import History
 from kindle_news_assistant.model_storage import model_exists, load_model, store_model
 
 SUMMARY_TEXT_LIMIT = 450  # characters
+INITIAL_BATCH_SIZE = 50
 
 
 def start_training() -> None:
     """Start the assistant model's training."""
-    history = History()
-    agent = Agent(history)
-    entries = agent.batch(False)
+    agent = Agent(False)
+    entries = agent.batch(None, INITIAL_BATCH_SIZE if not model_exists() else None)
 
-    (yes, no) = classify_articles(entries, history)  # pylint: disable=invalid-name
+    (yes, no) = classify_articles(entries)  # pylint: disable=invalid-name
     (X, y) = format_for_training(yes, no)  # pylint: disable=invalid-name
 
     print("Training model...")
@@ -35,9 +34,10 @@ def start_training() -> None:
         perceptron.partial_fit(X, y)
     else:
         perceptron = MLPRegressor(
-            hidden_layer_sizes=(11, 5),
+            hidden_layer_sizes=(10000, 5000, 1000, 20),
             solver="sgd",
-            max_iter=1000,
+            max_iter=200,
+            verbose=True,
         )
 
         # Fit model
@@ -47,15 +47,14 @@ def start_training() -> None:
     store_model(perceptron)
 
 
-def classify_articles(entries: List[FeedParserDict], history: History):
+def classify_articles(entries: List[Article]):
     """Run the user through a number of yes/no choices to determine which articles they would read.
 
     :param entries: The articles being classified
-    :param history: The history class instance
     :return: A yes, no tuple of entries that were labelled yes and entries that were labelled no
     """
-    yes: List[FeedParserDict] = []
-    no: List[FeedParserDict] = []  # pylint: disable=invalid-name
+    yes: List[Article] = []
+    no: List[Article] = []  # pylint: disable=invalid-name
 
     for (index, entry) in enumerate(entries):
         click.clear()
@@ -77,13 +76,11 @@ def classify_articles(entries: List[FeedParserDict], history: History):
         else:
             no.append(entry)
 
-        history.append(entry.id)
-
     return (yes, no)
 
 
 def format_for_training(
-    yes: List[FeedParserDict], no: List[FeedParserDict]
+    yes: List[Article], no: List[Article]
 ):  # pylint: disable=invalid-name
     """Format the yes/no articles in preparation for training.
 
@@ -101,7 +98,7 @@ def format_for_training(
 
 
 def format_helper(
-    article_list: List[FeedParserDict], output: int, X: List[List[int]], y: List[int]
+    article_list: List[Article], output: int, X: List[List[int]], y: List[int]
 ):  # pylint: disable=invalid-name
     """Help the `format_for_training` method group articles for training.
 
@@ -121,8 +118,8 @@ def format_helper(
 
 
 def calculate_accuracy(  # pylint: disable=invalid-name
-    yes: List[FeedParserDict],
-    no: List[FeedParserDict],
+    yes: List[Article],
+    no: List[Article],
     perceptron: MLPRegressor,
 ) -> float:
     """Calculate the accuracy of the inputted perceptron model.

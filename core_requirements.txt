@@ -1,7 +1,6 @@
 beautifulsoup4
 click
 EbookLib
-feedparser
 joblib
 newspaper3k
 scikit-learn

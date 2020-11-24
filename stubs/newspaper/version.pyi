@@ -1,3 +1,3 @@
 from typing import Any
 
-timezonenames: Any
+version_info: Any

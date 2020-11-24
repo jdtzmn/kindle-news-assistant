@@ -1,14 +1,12 @@
 """The main method for testing the article classification model."""
 from sklearn.neural_network import MLPRegressor  # type:ignore
 from kindle_news_assistant.agent import Agent
-from kindle_news_assistant.history import History
 from kindle_news_assistant.model_storage import load_model
 
 
 def start_test():
     """Start the assistant model's test."""
-    history = History()
-    agent = Agent(history)
+    agent = Agent(True)
 
     perceptron: MLPRegressor = load_model()
     posts = agent.fetch()

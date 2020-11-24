@@ -1,14 +1,13 @@
 """Fetch articles from the feeds in `feeds.txt`."""
 from typing import List, Optional, Union, Tuple, overload
 import os
-import random
-import feedparser
-from feedparser.util import FeedParserDict
+from multiprocessing import cpu_count
+from multiprocessing.dummy import Pool as ThreadPool
+import newspaper
+from newspaper.article import Article
 from sklearn.neural_network import MLPRegressor  # type: ignore
-from bs4 import BeautifulSoup
 from tqdm import tqdm
 from kindle_news_assistant.safe_open import safe_open
-from kindle_news_assistant.history import History
 from kindle_news_assistant.word_extractor import article_to_frequency
 
 dirname = os.path.dirname(__file__)
@@ -21,12 +20,12 @@ class Agent:
 
     BatchSize = 20
 
-    def __init__(self, history: History):
+    def __init__(self, include_old: Optional[bool] = False):
         """Initialize the Agent class.
 
-        :param history: An instance of the History class
+        :param include_old: Whether to include cached articles, defaults to False
         """
-        self.history = history
+        self.include_old = bool(include_old)
 
         feeds_file = safe_open(absolute_path, "r")
         content = feeds_file.read()
@@ -38,62 +37,68 @@ class Agent:
 
         :return: All of the posts from the articles
         """
-        print("Fetching articles...")
-        posts: List[FeedParserDict] = []
+        print("Fetching article sources...")
+        articles: List[Article] = []
+        for feed in tqdm(self.feeds):
+            source = newspaper.build(feed, memoize_articles=not self.include_old)
+            if len(source.articles) == 0 and self.include_old:
+                tqdm.write(
+                    "Warning: The source `" + feed + "` appears to have no articles."
+                )
+            articles.extend(source.articles)
 
-        for url in tqdm(self.feeds):
-            posts.extend(feedparser.parse(url).entries)
+        # Multi-thread article downloads and parsing
+        print("Downloading and parsing articles...")
 
-        return posts
+        def download_and_parse(article: Article):
+            try:
+                article.download()
+                article.parse()
+                article.nlp()
+            except newspaper.article.ArticleException:
+                pass
 
-    def filter_by_unread(self, posts: List[FeedParserDict]):
-        """Filter articles by articles which have not been read.
+        pool = ThreadPool(cpu_count())
+        list(tqdm(pool.imap(download_and_parse, articles), total=len(articles)))
+        pool.close()
+        pool.join()
 
-        :param posts: A list of all of the articles
-        :return: A list of the articles that have not been read
-        """
-        filtered: List[FeedParserDict] = []
-        for post in posts:
-            if not self.history.contains(post.id):
-                filtered.append(post)
-        return filtered
+        print("Done.")
+        print(len(articles))
+        return articles
 
     @staticmethod
-    def get_summary_text(post: FeedParserDict):
+    def get_summary_text(article: Article):
         """Extract summary text from an article.
 
-        :param post: The article to extract summary data from
+        :param article: The article to extract summary data from
         :return: The article's summary
         """
-        soup = BeautifulSoup(post.summary, "html.parser")
-        summary_text = soup.get_text()
-        return summary_text
+        return article.summary
 
     @staticmethod
     @overload
     def filter_by_model(
-        posts: List[FeedParserDict], model: MLPRegressor
-    ) -> List[FeedParserDict]:  # noqa: D102
+        articles: List[Article], model: MLPRegressor
+    ) -> List[Article]:  # noqa: D102
         ...
 
     @staticmethod
     @overload
     def filter_by_model(
-        posts: List[FeedParserDict], model: MLPRegressor, include_complement: bool
-    ) -> Union[
-        List[FeedParserDict], Tuple[List[FeedParserDict], List[FeedParserDict]]
-    ]:  # noqa: D102
+        articles: List[Article], model: MLPRegressor, include_complement: bool
+    ) -> Union[List[Article], Tuple[List[Article], List[Article]]]:  # noqa: D102
         ...
 
     @staticmethod
     def filter_by_model(
-        posts: List[FeedParserDict],
+        articles: List[Article],
         model: MLPRegressor,
         include_complement: Optional[bool] = False,
-    ) -> Union[List[FeedParserDict], Tuple[List[FeedParserDict], List[FeedParserDict]]]:
+    ) -> Union[List[Article], Tuple[List[Article], List[Article]]]:
         """Filter articles by using the learned classification model.
 
-        :param posts: The articles
+        :param articles: The articles
         :param model: The learned classification model
         :param include_complement: Whether to include articles that would not be
             recommended, defaults to False
@@ -102,43 +107,37 @@ class Agent:
             flag is set to True.
         """
         frequencies = [
-            article_to_frequency(Agent.get_summary_text(post)) for post in posts
+            article_to_frequency(Agent.get_summary_text(article))
+            for article in articles
         ]
         ratings = model.predict(frequencies)
 
         filtered = []
         complement = []
-        for (rating, post) in sorted(
-            zip(ratings, posts), reverse=True, key=lambda pair: pair[0]
+        for (rating, article) in sorted(
+            zip(ratings, articles), reverse=True, key=lambda pair: pair[0]
         ):
             print(rating)
-            if rating >= 0:
-                filtered.append(post)
+            if rating >= 0.5:
+                filtered.append(article)
             else:
-                complement.append(post)
+                complement.append(article)
 
         return (filtered, complement) if include_complement else filtered
 
     def batch(
         self,
-        mark: Optional[bool] = True,
         model: Optional[MLPRegressor] = None,
         size: Optional[int] = BatchSize,
     ):
-        """Fetch a batch of articles that are shuffled and filtered by unread.
+        """Fetch a batch of articles.
 
-        :param mark: Whether to mark the batch as read, defaults to True
         :param model: The learned article classification model
         :param size: The size of the batch, defaults to BatchSize
         :return: A list of articles
         """
-        posts: List[FeedParserDict] = self.fetch()
-        self.history.remove_ids_other_than([post.id for post in posts])
-        posts = self.filter_by_unread(posts)
+        articles = self.fetch()
         if model is not None:
-            posts = Agent.filter_by_model(posts, model)
-        random.shuffle(posts)
-        limited = posts[:size]
-        if mark:
-            self.history.extend([post.id for post in limited])
+            articles = Agent.filter_by_model(articles, model)
+        limited = articles[:size]
         return limited
