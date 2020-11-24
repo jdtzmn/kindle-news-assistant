@@ -1,7 +1,6 @@
 """Fetch articles from the feeds in `feeds.txt`."""
 from typing import List, Optional, Union, Tuple, overload
 import os
-from multiprocessing import cpu_count
 from multiprocessing.dummy import Pool as ThreadPool
 import newspaper
 from newspaper.article import Article
@@ -9,6 +8,8 @@ from sklearn.neural_network import MLPRegressor  # type: ignore
 from tqdm import tqdm
 from kindle_news_assistant.safe_open import safe_open
 from kindle_news_assistant.word_extractor import article_to_frequency
+
+THREAD_COUNT = 10  # When downloading and parsing articles
 
 dirname = os.path.dirname(__file__)
 RELATIVE_PATH = "../userdata/feeds.txt"
@@ -40,7 +41,9 @@ class Agent:
         print("Fetching article sources...")
         articles: List[Article] = []
         for feed in tqdm(self.feeds):
-            source = newspaper.build(feed, memoize_articles=not self.include_old)
+            source = newspaper.build(
+                feed, memoize_articles=not self.include_old, keep_article_html=True
+            )
             if len(source.articles) == 0 and self.include_old:
                 tqdm.write(
                     "Warning: The source `" + feed + "` appears to have no articles."
@@ -58,13 +61,17 @@ class Agent:
             except newspaper.article.ArticleException:
                 pass
 
-        pool = ThreadPool(cpu_count())
+        pool = ThreadPool(THREAD_COUNT)
         list(tqdm(pool.imap(download_and_parse, articles), total=len(articles)))
         pool.close()
         pool.join()
 
-        print("Done.")
-        print(len(articles))
+        print("Removing invalid articles...")
+        articles = [
+            article
+            for article in tqdm(articles)
+            if article.is_parsed and article.is_valid_body()
+        ]
         return articles
 
     @staticmethod
@@ -112,18 +119,23 @@ class Agent:
         ]
         ratings = model.predict(frequencies)
 
-        filtered = []
-        complement = []
-        for (rating, article) in sorted(
+        grouped_ratings_and_articles = sorted(
             zip(ratings, articles), reverse=True, key=lambda pair: pair[0]
-        ):
-            print(rating)
-            if rating >= 0.5:
-                filtered.append(article)
-            else:
-                complement.append(article)
+        )
 
-        return (filtered, complement) if include_complement else filtered
+        if include_complement:
+            filtered = []
+            complement = []
+
+            for (rating, article) in grouped_ratings_and_articles:
+                if rating >= 0.5:
+                    filtered.append(article)
+                else:
+                    complement.append(article)
+
+            return (filtered, complement)
+
+        return [zipped[1] for zipped in grouped_ratings_and_articles]
 
     def batch(
         self,

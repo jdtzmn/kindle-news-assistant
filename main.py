@@ -3,6 +3,7 @@
 import click
 from kindle_news_assistant.model.train import start_training
 from kindle_news_assistant.model.test import start_test
+from kindle_news_assistant.model.send import send_articles
 
 
 @click.command()
@@ -22,7 +23,7 @@ def run(train: bool, test: bool):
     elif test:
         start_test()
     else:
-        print("main")
+        send_articles()
 
 
 if __name__ == "__main__":
