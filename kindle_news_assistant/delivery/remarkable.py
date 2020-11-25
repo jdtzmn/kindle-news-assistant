@@ -29,8 +29,6 @@ Please confirm that we may open a webpage.",
 
         self.client.renew_token()
 
-        super().__init__()
-
     def __str__(self):
         """Return a readable representation of the RemarkableDelivery class.
 

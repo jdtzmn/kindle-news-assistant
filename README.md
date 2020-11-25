@@ -4,6 +4,8 @@ More information coming soon...
 
 ## Getting Started
 
+Install [calibre](https://calibre-ebook.com) and [install the command line tools](https://manual.calibre-ebook.com/generated/en/cli-index.html).
+
 Set up virtual environment and install dependencies:
 
 ```bash

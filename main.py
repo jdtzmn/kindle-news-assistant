@@ -14,7 +14,9 @@ from kindle_news_assistant.delivery.index import GeneralDeliveryMethod
     "--test", is_flag=True, help="Preview a list compiled by the assistant model."
 )
 @click.option(
-    "--delivery", type=click.Choice(GeneralDeliveryMethod.methods, case_sensitive=False)
+    "--delivery",
+    type=click.Choice(GeneralDeliveryMethod.methods, case_sensitive=False),
+    help="Set the method for delivering articles.",
 )
 def run(train: bool, test: bool, delivery: Optional[str]):
     """Start the application.
