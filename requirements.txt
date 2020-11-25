@@ -31,6 +31,7 @@ pathspec==0.8.1
 Pillow==8.0.1
 pluggy==0.13.1
 py==1.9.0
+pyaml==19.4.1
 pydocstyle==5.1.1
 pylint==2.6.0
 pyparsing==2.4.7
@@ -40,9 +41,11 @@ PyYAML==5.3.1
 regex==2020.11.13
 requests==2.25.0
 requests-file==1.5.1
+rmapy==0.2.2
 scikit-learn==0.23.2
 scipy==1.5.4
 sgmllib3k==1.0.0
+simple-term-menu==0.10.4
 six==1.15.0
 snowballstemmer==2.0.0
 soupsieve==2.0.1

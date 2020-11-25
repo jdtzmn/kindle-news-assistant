@@ -1,10 +1,11 @@
-beautifulsoup4
 click
 EbookLib
 joblib
 newspaper3k
 scikit-learn
 tqdm
+rmapy
+simple-term-menu
 
 darglint
 mypy
