@@ -23,7 +23,7 @@ def run(train: bool, test: bool, delivery: Optional[str]):
 
     :param train: A flag that indicates whether to train the model
     :param test: A flag that indicates whether to test the model
-    :type test: bool
+    :param delivery: An argument to set the method for delivering articles
     """
     if train:
         start_training()

@@ -23,7 +23,7 @@ def load_model():
     :return: The model as an SGDClassifer
     """
     if not model_exists():
-        raise LookupError()
+        raise LookupError("Model file does not exist.")
 
     clf: SGDClassifier = load(absolute_path)
     return clf

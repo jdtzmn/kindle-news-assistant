@@ -6,8 +6,6 @@ from kindle_news_assistant.model_storage import load_model
 from kindle_news_assistant.publisher.construct_book import construct_book_from
 from kindle_news_assistant.delivery.index import GeneralDeliveryMethod
 
-DELIVERY_SIZE = 10  # Number of articles to deliver
-
 
 def send_articles(method: Optional[str]):
     """Retrieve, filter, and send articles to the user.
@@ -17,17 +15,14 @@ def send_articles(method: Optional[str]):
     agent = Agent()
 
     perceptron: MLPRegressor = load_model()
-    articles = agent.fetch()
-
-    print("Filtering articles...")
-    filtered = Agent.filter_by_model(articles, perceptron)
-    limited = filtered[:DELIVERY_SIZE]
+    filtered = agent.batch(perceptron)
+    agent.download(filtered)
 
     print("The following articles were selected for delivery:")
-    print([article.title for article in limited])
+    print([article.title for article in filtered])
 
     print("Constructing epub issue...")
-    book_path = construct_book_from(limited)
+    book_path = construct_book_from(filtered)
 
     print("Delivering news issue...")
     delivery_method = GeneralDeliveryMethod(method)

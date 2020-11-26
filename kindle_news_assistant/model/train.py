@@ -9,17 +9,21 @@ from kindle_news_assistant.model_storage import model_exists, load_model, store_
 
 SUMMARY_TEXT_LIMIT = 450  # characters
 INITIAL_BATCH_SIZE = 50
+SUBSEQUENT_BATCH_SIZE = 20
 
 
 def start_training() -> None:
     """Start the assistant model's training."""
-    agent = Agent(False)
-    entries = agent.batch(None, INITIAL_BATCH_SIZE if not model_exists() else None)
+    agent = Agent()
+    entries = agent.batch(
+        None, INITIAL_BATCH_SIZE if not model_exists() else SUBSEQUENT_BATCH_SIZE
+    )
+    agent.download(entries)
 
     (yes, no) = classify_articles(entries)  # pylint: disable=invalid-name
     (X, y) = format_for_training(yes, no)  # pylint: disable=invalid-name
 
-    print("Training model...")
+    print("Training model (this will take a while)...")
 
     if model_exists():
         perceptron: MLPRegressor = load_model()
@@ -60,7 +64,7 @@ def classify_articles(entries: List[Article]):
         click.clear()
         position_text = str(index + 1) + " of " + str(len(entries))
         click.echo(click.style(entry.title, bold=True) + " (" + position_text + ")\n")
-        summary_text = Agent.get_summary_text(entry)
+        summary_text = entry.text
         truncated_summary = (
             (summary_text[: SUMMARY_TEXT_LIMIT - 3] + "...")
             if len(summary_text) > SUMMARY_TEXT_LIMIT
@@ -109,7 +113,7 @@ def format_helper(
     :param y: A list of the output classes
     """
     for article in article_list:
-        text_value = article.title + " " + Agent.get_summary_text(article)
+        text_value = article.title + " " + article.text
         spaced = text_value.replace("\n", " ")
         article_x = article_to_frequency(spaced)
         article_y = output
