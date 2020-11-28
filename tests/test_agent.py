@@ -28,3 +28,10 @@ def agent():
 def test_filter_duplicates(agent: Agent, articles: List[Article], expected_len: int):
     filtered = agent.filter_duplicates(articles)
     assert len(filtered) == expected_len
+
+
+def test_assertion_error_if_invalid_language(agent: Agent):
+    articles: List[Article] = []
+    language = "zy"
+    with pytest.raises(AssertionError):
+        agent.filter_by_language(articles, language)

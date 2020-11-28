@@ -1,5 +1,5 @@
 """The main method for training the article classification model."""
-from typing import List
+from typing import List, Optional
 import click
 from newspaper.article import Article
 from sklearn.neural_network import MLPRegressor  # type:ignore
@@ -12,11 +12,16 @@ INITIAL_BATCH_SIZE = 50
 SUBSEQUENT_BATCH_SIZE = 20
 
 
-def start_training() -> None:
-    """Start the assistant model's training."""
+def start_training(language: Optional[str]) -> None:
+    """Start the assistant model's training.
+
+    :param language: The language to filter articles by
+    """
     agent = Agent()
     entries = agent.batch(
-        None, INITIAL_BATCH_SIZE if not model_exists() else SUBSEQUENT_BATCH_SIZE
+        None,
+        INITIAL_BATCH_SIZE if not model_exists() else SUBSEQUENT_BATCH_SIZE,
+        language,
     )
     agent.download(entries)
 

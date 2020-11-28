@@ -7,15 +7,16 @@ from kindle_news_assistant.publisher.construct_book import construct_book_from
 from kindle_news_assistant.delivery.index import GeneralDeliveryMethod
 
 
-def send_articles(method: Optional[str]):
+def send_articles(language: Optional[str], method: Optional[str]):
     """Retrieve, filter, and send articles to the user.
 
+    :param language: The language to filter articles by
     :param method: The method flag set through a command line interface argument
     """
     agent = Agent()
 
     perceptron: MLPRegressor = load_model()
-    filtered = agent.batch(perceptron)
+    filtered = agent.batch(perceptron, None, language)
     agent.download(filtered)
 
     print("The following articles were selected for delivery:")

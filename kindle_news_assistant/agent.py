@@ -9,6 +9,7 @@ import os
 from multiprocessing.dummy import Pool as ThreadPool
 import newspaper
 from newspaper.article import Article
+from newspaper.utils import get_available_languages
 from sklearn.neural_network import MLPRegressor  # type: ignore
 from tqdm import tqdm
 from kindle_news_assistant.safe_open import safe_open
@@ -39,6 +40,22 @@ def grouplen(sequence, chunk_size):
     :return: A sequence of grouped tuples.
     """
     return zip_longest(*(iter(sequence),) * chunk_size)
+
+
+def create_language_filter(language: str):
+    """Use to create a higher order component for filtering articles by a language.
+
+    :param language: The language to filter by
+    :return: Whether or not the article is
+    """
+    assert (
+        language in get_available_languages()
+    ), f'"{language}" is not a supported language.'
+
+    def language_filter(article: Article):
+        return article.meta_lang == "" or article.meta_lang == language
+
+    return language_filter
 
 
 class Agent:
@@ -122,7 +139,7 @@ class Agent:
         pool.join()
 
     @staticmethod
-    def download_and_validate(articles: List[Article]):
+    def download_and_validate(articles: List[Article], language: Optional[str]):
         """Download and validate articles across multiple threads, \
             and not in-place like the `Agent.download` method.
 
@@ -131,6 +148,7 @@ class Agent:
         using the model.
 
         :param articles: The articles to download.
+        :param language: The language to filter articles by
         :return: A tuple of original articles that are valid and their downloaded counterparts
         """
         # Articles that have not been downloaded but are marked as valid:
@@ -138,6 +156,10 @@ class Agent:
         valid_articles: List[Article] = []
         # Articles that have been downloaded:
         downloaded_copies: List[Article] = []
+
+        language_filter = None
+        if not language is None:
+            language_filter = create_language_filter(language)
 
         def download_and_parse_batch(article: Article):
             # Download and parse article copies (so that downloads can be purged later)
@@ -155,8 +177,10 @@ class Agent:
                 copy.download()
                 copy.parse()
 
-                # Filter invalid articles
-                if copy.is_valid_body():
+                # Filter invalid articles and articles that aren't the right language
+                if copy.is_valid_body() and (
+                    language_filter is None or language_filter(copy)
+                ):
                     valid_articles.append(article)
                     downloaded_copies.append(copy)
             except newspaper.article.ArticleException:
@@ -170,11 +194,14 @@ class Agent:
         return (valid_articles, downloaded_copies)
 
     @staticmethod
-    def score_by_model(articles: List[Article], model: MLPRegressor):
+    def score_by_model(
+        articles: List[Article], model: MLPRegressor, language: Optional[str]
+    ):
         """Score articles by using the learned regression model.
 
         It scores articles across multiple threads and in batches for efficiency.
-        In addition, invalid articles are filtered out automatically.
+        In addition, invalid articles and articles in the wrong languages
+        are filtered out automatically.
 
         Process:
         1. Use a for loop every `BATCH_SIZE` that starts fetching articles across multiple threads
@@ -185,6 +212,7 @@ class Agent:
 
         :param articles: The articles
         :param model: The learned regression model
+        :param language: The language to filter by
         :return: A tuple of scores and articles.
         """
         batched_articles = grouplen(articles, BATCH_SIZE)
@@ -196,7 +224,9 @@ class Agent:
         for batch in tqdm(
             batched_articles, unit_scale=BATCH_SIZE, total=number_of_batches
         ):
-            valid_articles, downloaded_copies = Agent.download_and_validate(batch)
+            valid_articles, downloaded_copies = Agent.download_and_validate(
+                batch, language
+            )
 
             # Guard against an empty batch
             if len(valid_articles) == 0:
@@ -214,14 +244,19 @@ class Agent:
     @staticmethod
     @overload
     def filter_by_model(
-        articles: List[Article], model: MLPRegressor
+        articles: List[Article],
+        model: MLPRegressor,
+        language: Optional[str] = None,
     ) -> List[Article]:  # noqa: D102
         ...
 
     @staticmethod
     @overload
     def filter_by_model(
-        articles: List[Article], model: MLPRegressor, include_complement: bool
+        articles: List[Article],
+        model: MLPRegressor,
+        language: Optional[str] = None,
+        include_complement: bool = False,
     ) -> Union[List[Article], Tuple[List[Article], List[Article]]]:  # noqa: D102
         ...
 
@@ -229,6 +264,7 @@ class Agent:
     def filter_by_model(
         articles: List[Article],
         model: MLPRegressor,
+        language: Optional[str] = None,
         include_complement: Optional[bool] = False,
     ) -> Union[List[Article], Tuple[List[Article], List[Article]]]:
         """Filter articles by using the learned regression model. \
@@ -238,12 +274,13 @@ class Agent:
         :param model: The learned regression model
         :param include_complement: Whether to include articles that would not be
             recommended, defaults to False
+        :param language: A language filter for the articles
         :return: Articles that were approved by the regression model, in recommended order.
             Will return a tuple with filtered and complement articles if `include_complement`
             flag is set to True.
             Articles will not be parsed on return.
         """
-        scored = Agent.score_by_model(articles, model)
+        scored = Agent.score_by_model(articles, model, language)
         sorted_by_rating = sorted(scored, reverse=True, key=lambda pair: pair[0])
 
         if include_complement:
@@ -291,10 +328,22 @@ class Agent:
 
         return filtered
 
+    @staticmethod
+    def filter_by_language(articles: List[Article], language: str) -> List[Article]:
+        """Filter articles by a specified language.
+
+        :param articles: The list of articles
+        :param language: The language to filter by
+        :return: A filterd list where all the articles are the right language
+        """
+        language_filter = create_language_filter(language)
+        return [article for article in articles if language_filter(article)]
+
     def batch(
         self,
         model: Optional[MLPRegressor] = None,
         size: Optional[int] = DELIVERY_SIZE,
+        language: Optional[str] = None,
     ):
         """Fetch a batch of articles.
 
@@ -302,11 +351,12 @@ class Agent:
 
         :param model: The learned article classification model
         :param size: The size of the batch, defaults to DELIVERY_SIZE
+        :param language: The language to filter by
         :return: A list of articles
         """
         articles = self.fetch()
         articles = Agent.filter_duplicates(articles)
         if model is not None:
-            articles = Agent.filter_by_model(articles, model)
+            articles = Agent.filter_by_model(articles, model, language)
         limited = articles[:size]
         return limited
