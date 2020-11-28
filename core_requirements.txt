@@ -6,6 +6,7 @@ scikit-learn
 tqdm
 rmapy
 simple-term-menu
+tldextract
 
 darglint
 mypy

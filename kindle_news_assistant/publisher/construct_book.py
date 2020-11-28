@@ -1,7 +1,9 @@
 """Methods to aid in constructing an epub book."""
 import os
-from typing import List, Union, cast
+import re
 from datetime import datetime
+from typing import List, Union, cast
+from tldextract import extract
 from newspaper.article import Article
 from ebooklib import epub
 from kindle_news_assistant.safe_open import mkdirs
@@ -15,13 +17,23 @@ def construct_chapter_content(article: Article) -> str:
     :param article: The article to use when constructing chapter content.
     :return: An html string of the chapter's content.
     """
-    if not "<h1>" in article.article_html:
-        return f"""
-            <section>
-                <h1>{article.title}</h1>
-                {article.article_html}
-            </section>"""
-    return article.article_html
+    without_title_element = re.sub(
+        rf"<h[1-6]>{article.title}<\/h[1-6]>",
+        "",
+        article.article_html,
+        1,  # only replace the first title element
+        re.IGNORECASE,
+    )
+
+    _, domain, suffix = extract(article.source_url)
+    article_source_domain = f"{domain}.{suffix}"
+
+    return f"""
+        <section>
+            <h1>{article.title}</h1>
+            <h2>From {article_source_domain}</h2>
+            {without_title_element}
+        </section>"""
 
 
 def construct_book_from(articles: List[Article]):

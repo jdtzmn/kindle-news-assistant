@@ -38,7 +38,7 @@ def start_training() -> None:
         perceptron.partial_fit(X, y)
     else:
         perceptron = MLPRegressor(
-            hidden_layer_sizes=(10000, 5000, 1000, 20),
+            hidden_layer_sizes=(5000, 2500, 1000, 20),
             solver="sgd",
             max_iter=200,
             verbose=True,

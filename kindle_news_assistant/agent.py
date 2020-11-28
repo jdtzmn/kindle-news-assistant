@@ -3,7 +3,8 @@ import math
 import random
 from copy import deepcopy
 from itertools import zip_longest
-from typing import List, Optional, Union, Tuple, overload
+from urllib.parse import urlparse
+from typing import Dict, List, Optional, Union, Tuple, overload
 import os
 from multiprocessing.dummy import Pool as ThreadPool
 import newspaper
@@ -259,6 +260,37 @@ class Agent:
 
         return [zipped[1] for zipped in sorted_by_rating]
 
+    @staticmethod
+    def filter_duplicates(articles: List[Article]) -> List[Article]:
+        """Filter duplicate articles by their urls.
+
+        :param articles: The article list
+        :return: A filtered list of articles that excludes duplicates
+        """
+        seen_dict: Dict[str, List[str]] = {}  # Track seen article urls by source url
+        filtered: List[Article] = []
+
+        for article in articles:
+            source_url = article.source_url
+            path = urlparse(article.url).path
+
+            if not source_url in seen_dict:
+                seen_dict[source_url] = []
+
+            has_been_seen = False
+            for seen_path in seen_dict[source_url]:
+                if path == seen_path:
+                    has_been_seen = True
+                    break
+
+            if has_been_seen:
+                continue
+
+            seen_dict[source_url].append(path)
+            filtered.append(article)
+
+        return filtered
+
     def batch(
         self,
         model: Optional[MLPRegressor] = None,
@@ -266,11 +298,14 @@ class Agent:
     ):
         """Fetch a batch of articles.
 
+        Will filter duplicates and filter by the model if one is given.
+
         :param model: The learned article classification model
         :param size: The size of the batch, defaults to DELIVERY_SIZE
         :return: A list of articles
         """
         articles = self.fetch()
+        articles = Agent.filter_duplicates(articles)
         if model is not None:
             articles = Agent.filter_by_model(articles, model)
         limited = articles[:size]

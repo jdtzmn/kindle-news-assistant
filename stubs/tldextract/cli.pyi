@@ -1,0 +1,3 @@
+from .tldextract import TLDExtract as TLDExtract
+
+def main() -> None: ...
