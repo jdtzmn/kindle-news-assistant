@@ -14,10 +14,10 @@ def start_test(language: Optional[str], thread_count: Optional[int]):
     """
     agent = Agent(True, thread_count)
 
-    perceptron: MLPRegressor = load_model()
     articles = agent.fetch()
 
     # Filter and download articles
+    perceptron: MLPRegressor = load_model()
     (filtered, complement) = cast(
         Tuple[List[Article], List[Article]],
         agent.filter_by_model(articles, perceptron, language, True),

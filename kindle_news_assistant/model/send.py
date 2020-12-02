@@ -1,7 +1,7 @@
 """The main method for filtering and delivering articles."""
 from typing import Optional
 from sklearn.neural_network import MLPRegressor  # type:ignore
-from kindle_news_assistant.agent import Agent
+from kindle_news_assistant.agent import Agent, DELIVERY_SIZE
 from kindle_news_assistant.model_storage import load_model
 from kindle_news_assistant.publisher.construct_book import construct_book_from
 from kindle_news_assistant.delivery.index import GeneralDeliveryMethod
@@ -18,15 +18,17 @@ def send_articles(
     """
     agent = Agent(None, thread_count)
 
+    articles = agent.fetch()
     perceptron: MLPRegressor = load_model()
-    filtered = agent.batch(perceptron, None, language)
-    agent.download(filtered)
+    articles = agent.filter_by_model(articles, perceptron, language)
+    limited = articles[:DELIVERY_SIZE]
+    agent.download(limited)
 
     print("The following articles were selected for delivery:")
-    print([article.title for article in filtered])
+    print([article.title for article in limited])
 
     print("Constructing epub issue...")
-    book_path = construct_book_from(filtered)
+    book_path = construct_book_from(limited)
 
     print("Delivering news issue...")
     delivery_method = GeneralDeliveryMethod(method)

@@ -4,7 +4,7 @@ from sklearn.linear_model import SGDClassifier  # type: ignore
 from joblib import dump, load
 
 dirname = os.path.dirname(__file__)
-RELATIVE_PATH = "../userdata/model.joblib"
+RELATIVE_PATH = "../userdata/model.pkl.compressed"
 absolute_path = os.path.join(dirname, RELATIVE_PATH)
 
 
@@ -32,6 +32,8 @@ def load_model():
 def store_model(clf: SGDClassifier):
     """Dump the model data into the model file.
 
+    The model is compressed using ZLIB compression.
+
     :param clf: The classifier to be stored
     """
-    dump(clf, absolute_path)
+    dump(clf, absolute_path, compress=("zlib", 3))

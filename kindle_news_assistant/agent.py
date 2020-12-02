@@ -17,6 +17,7 @@ from typing import (
 )
 import os
 from multiprocessing.dummy import Pool as ThreadPool
+from typing_extensions import Literal
 import newspaper
 from newspaper.article import Article
 from newspaper.utils import get_available_languages
@@ -385,22 +386,24 @@ class Agent:
 
     def batch(
         self,
-        model: Optional[MLPRegressor] = None,
-        size: Optional[int] = DELIVERY_SIZE,
+        download: Optional[bool] = False,
+        size: Optional[Union[int, Literal[False]]] = DELIVERY_SIZE,
         language: Optional[str] = None,
     ):
         """Fetch a batch of articles.
 
-        Will filter duplicates and filter by the model if one is given.
+        Will filter duplicates and invalid articles, and limit the number of articles returned.
 
-        :param model: The learned article classification model
-        :param size: The size of the batch, defaults to DELIVERY_SIZE
-        :param language: The language to filter by
+        :param download: Whether to return pre-downloaded articles or not.
+        :param size: The size of the batch, defaults to DELIVERY_SIZE.
+            Setting to False will not limit the articles.
+        :param language: The language to filter articles by
         :return: A list of articles
         """
         articles = self.fetch()
         articles = Agent.filter_duplicates(articles)
-        if model is not None:
-            articles = self.filter_by_model(articles, model, language)
-        limited = articles[:size]
-        return limited
+        valid_or_downloaded_tuple_index = 1 if download is True else 0
+        articles = self.download_and_validate(articles, language)[
+            valid_or_downloaded_tuple_index
+        ]
+        return articles[:size] if size is not False else articles

@@ -19,17 +19,16 @@ def start_training(language: Optional[str], thread_count: Optional[int]) -> None
     :param thread_count: The number of threads to use during article retrieval.
     """
     agent = Agent(None, thread_count)
-    entries = agent.batch(
-        None,
+    articles = agent.batch(
+        True,
         INITIAL_BATCH_SIZE if not model_exists() else SUBSEQUENT_BATCH_SIZE,
         language,
     )
-    agent.download(entries)
 
-    (yes, no) = classify_articles(entries)  # pylint: disable=invalid-name
+    (yes, no) = classify_articles(articles)  # pylint: disable=invalid-name
     (X, y) = format_for_training(yes, no)  # pylint: disable=invalid-name
 
-    print("Training model (this will take a while)...")
+    print("Training model...")
 
     if model_exists():
         perceptron: MLPRegressor = load_model()
@@ -44,16 +43,14 @@ def start_training(language: Optional[str], thread_count: Optional[int]) -> None
         perceptron.partial_fit(X, y)
     else:
         perceptron = MLPRegressor(
-            hidden_layer_sizes=(5000, 2500, 1000, 20),
-            solver="sgd",
-            max_iter=200,
+            hidden_layer_sizes=(500, 50),
             verbose=True,
         )
 
         # Fit model
         perceptron.fit(X, y)
 
-    print("Saving model...")
+    print("Compressing and saving model (this might take a while)...")
     store_model(perceptron)
 
 
@@ -104,7 +101,7 @@ def format_for_training(
     format_helper(yes, 1, X, y)
     format_helper(no, -1, X, y)
 
-    return (X, y)
+    return X, y
 
 
 def format_helper(
