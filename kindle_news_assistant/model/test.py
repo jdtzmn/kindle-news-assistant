@@ -6,12 +6,13 @@ from kindle_news_assistant.agent import Agent
 from kindle_news_assistant.model_storage import load_model
 
 
-def start_test(language: Optional[str]):
+def start_test(language: Optional[str], thread_count: Optional[int]):
     """Start the assistant model's test.
 
     :param language: The language to filter articles by
+    :param thread_count: The number of threads to use during article retrieval.
     """
-    agent = Agent(True)
+    agent = Agent(True, thread_count)
 
     perceptron: MLPRegressor = load_model()
     articles = agent.fetch()
@@ -19,7 +20,7 @@ def start_test(language: Optional[str]):
     # Filter and download articles
     (filtered, complement) = cast(
         Tuple[List[Article], List[Article]],
-        Agent.filter_by_model(articles, perceptron, language, True),
+        agent.filter_by_model(articles, perceptron, language, True),
     )
     agent.download(filtered)
     agent.download(complement)

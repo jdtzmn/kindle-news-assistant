@@ -12,12 +12,13 @@ INITIAL_BATCH_SIZE = 50
 SUBSEQUENT_BATCH_SIZE = 20
 
 
-def start_training(language: Optional[str]) -> None:
+def start_training(language: Optional[str], thread_count: Optional[int]) -> None:
     """Start the assistant model's training.
 
     :param language: The language to filter articles by
+    :param thread_count: The number of threads to use during article retrieval.
     """
-    agent = Agent()
+    agent = Agent(None, thread_count)
     entries = agent.batch(
         None,
         INITIAL_BATCH_SIZE if not model_exists() else SUBSEQUENT_BATCH_SIZE,
@@ -34,7 +35,7 @@ def start_training(language: Optional[str]) -> None:
         perceptron: MLPRegressor = load_model()
 
         # Log accuracy
-        accuracy = calculate_accuracy(yes, no, perceptron)
+        accuracy = calculate_accuracy(yes, no, perceptron, agent)
         print("Accuracy:")
         percentage_str = str(int(accuracy * 100))
         print(percentage_str + "%")
@@ -85,7 +86,7 @@ def classify_articles(entries: List[Article]):
         else:
             no.append(entry)
 
-    return (yes, no)
+    return yes, no
 
 
 def format_for_training(
@@ -127,20 +128,19 @@ def format_helper(
 
 
 def calculate_accuracy(  # pylint: disable=invalid-name
-    yes: List[Article],
-    no: List[Article],
-    perceptron: MLPRegressor,
+    yes: List[Article], no: List[Article], perceptron: MLPRegressor, agent: Agent
 ) -> float:
     """Calculate the accuracy of the inputted perceptron model.
 
     :param yes: The articles which the user liked
     :param no: The articles which the user disliked
     :param perceptron: The perceptron model used for classification
+    :param agent: The agent instance used for article batching
     :return: The accuracy of the current model
     """
     # Predict the "yes" articles using the model
     entries = yes + no
-    predicted_correct = Agent.filter_by_model(entries, perceptron)
+    predicted_correct = agent.filter_by_model(entries, perceptron)
 
     # We'll add correct yes articles and subtract incorrect no articles
     correct = len(no)

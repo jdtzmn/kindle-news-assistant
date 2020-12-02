@@ -24,7 +24,18 @@ from kindle_news_assistant.delivery.index import GeneralDeliveryMethod
     type=click.Choice(GeneralDeliveryMethod.methods, case_sensitive=False),
     help="Set the method for delivering articles.",
 )
-def run(train: bool, test: bool, lang: Optional[str], delivery: Optional[str]):
+@click.option(
+    "--thread-count",
+    type=int,
+    help="Specify the number of threads to use. Specifying 1 start no threads.",
+)
+def run(
+    train: bool,
+    test: bool,
+    lang: Optional[str],
+    delivery: Optional[str],
+    thread_count: Optional[int],
+):
     """Start the application.
 
     :param train: A flag that indicates whether to train the model
@@ -32,13 +43,15 @@ def run(train: bool, test: bool, lang: Optional[str], delivery: Optional[str]):
     :param lang: A language argument that is used for article filtration. Will filter articles
         by a given language, if specified
     :param delivery: An argument to set the method for delivering articles
+    :param thread_count: An override for the number of threads to use when
+        fetching and filtering articles.
     """
     if train:
-        start_training(lang)
+        start_training(lang, thread_count)
     elif test:
-        start_test(lang)
+        start_test(lang, thread_count)
     else:
-        send_articles(lang, delivery)
+        send_articles(lang, thread_count, delivery)
 
 
 if __name__ == "__main__":

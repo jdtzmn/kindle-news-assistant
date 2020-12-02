@@ -4,7 +4,17 @@ import random
 from copy import deepcopy
 from itertools import zip_longest
 from urllib.parse import urlparse
-from typing import Dict, List, Optional, Union, Tuple, overload
+from typing import (
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Iterable,
+    Union,
+    Tuple,
+    overload,
+    cast,
+)
 import os
 from multiprocessing.dummy import Pool as ThreadPool
 import newspaper
@@ -61,17 +71,58 @@ def create_language_filter(language: str):
 class Agent:
     """A class for fetching articles from the feeds in `feeds.txt`."""
 
-    def __init__(self, include_old: Optional[bool] = False):
+    def __init__(
+        self, include_old: Optional[bool] = False, thread_count: Optional[int] = None
+    ):
         """Initialize the Agent class.
 
         :param include_old: Whether to include cached articles, defaults to False
+        :param thread_count: An argument that enforces a certain thread count for this instance
         """
         self.include_old = bool(include_old)
+        assert thread_count is None or thread_count >= 1
+        self.thread_count = thread_count
 
         feeds_file = safe_open(absolute_path, "r")
         content = feeds_file.read()
         feeds_file.close()
         self.feeds = content.split("\n")
+
+    def efficient_map_unordered(
+        self,
+        func: Callable,
+        items: List,
+        show_bar: Optional[bool] = None,
+        thread_count: Optional[int] = None,
+        **kwargs,
+    ):
+        """Run a function over a list of items with optional loading bars and multithreading.
+
+        :param func: The function to be called over the list.
+        :param items: The items to map the function over.
+        :param show_bar: Whether to show a progress bar
+        :param thread_count: The number of threads, as specified by the function call.
+            Note: This value is overridden by the instance's thread_count value, if set.
+        :param kwargs: A number of keyword arguments to be passed to the tqdm progress bar instance
+        :return: A mapped version of the items.
+        """
+        if self.thread_count == 1:
+            iterable = tqdm(items) if show_bar else items
+            return list(map(func, cast(Iterable, iterable)))
+
+        if self.thread_count is not None:
+            thread_count = self.thread_count
+
+        pool = ThreadPool(thread_count)
+        return_value = (
+            list(tqdm(pool.imap_unordered(func, items), **kwargs))
+            if show_bar
+            else list(pool.imap_unordered(func, items))
+        )
+        pool.close()
+        pool.join()
+
+        return return_value
 
     def fetch(self, limit: int = DEFAULT_FETCH_LIMIT):
         """Fetch the articles from the feeds.
@@ -96,10 +147,9 @@ class Agent:
                 )
             articles.extend(source.articles)
 
-        pool = ThreadPool(number_of_feeds)
-        list(tqdm(pool.imap_unordered(build_source, self.feeds), total=number_of_feeds))
-        pool.close()
-        pool.join()
+        self.efficient_map_unordered(
+            build_source, self.feeds, True, number_of_feeds, total=number_of_feeds
+        )
 
         # Shuffle articles before limiting to make it more fair
         if len(articles) > limit:
@@ -110,8 +160,7 @@ class Agent:
         trimmed = articles[:limit]
         return trimmed
 
-    @staticmethod
-    def download(articles: List[Article]):
+    def download(self, articles: List[Article]):
         """Download (and parse) articles in-place efficiently using multithreading.
 
         :param articles: The articles to be downloaded and parsed.
@@ -128,18 +177,15 @@ class Agent:
             except newspaper.article.ArticleException:
                 pass
 
-        pool = ThreadPool(number_of_articles)
-        list(
-            tqdm(
-                pool.imap_unordered(download_and_parse, articles),
-                total=number_of_articles,
-            )
+        self.efficient_map_unordered(
+            download_and_parse,
+            articles,
+            True,
+            number_of_articles,
+            total=number_of_articles,
         )
-        pool.close()
-        pool.join()
 
-    @staticmethod
-    def download_and_validate(articles: List[Article], language: Optional[str]):
+    def download_and_validate(self, articles: List[Article], language: Optional[str]):
         """Download and validate articles across multiple threads, \
             and not in-place like the `Agent.download` method.
 
@@ -158,7 +204,7 @@ class Agent:
         downloaded_copies: List[Article] = []
 
         language_filter = None
-        if not language is None:
+        if language is not None:
             language_filter = create_language_filter(language)
 
         def download_and_parse_batch(article: Article):
@@ -186,16 +232,14 @@ class Agent:
             except newspaper.article.ArticleException:
                 pass
 
-        pool = ThreadPool(len(articles))
-        pool.imap_unordered(download_and_parse_batch, articles)
-        pool.close()
-        pool.join()
+        self.efficient_map_unordered(
+            download_and_parse_batch, articles, False, len(articles)
+        )
 
-        return (valid_articles, downloaded_copies)
+        return valid_articles, downloaded_copies
 
-    @staticmethod
     def score_by_model(
-        articles: List[Article], model: MLPRegressor, language: Optional[str]
+        self, articles: List[Article], model: MLPRegressor, language: Optional[str]
     ):
         """Score articles by using the learned regression model.
 
@@ -224,7 +268,7 @@ class Agent:
         for batch in tqdm(
             batched_articles, unit_scale=BATCH_SIZE, total=number_of_batches
         ):
-            valid_articles, downloaded_copies = Agent.download_and_validate(
+            valid_articles, downloaded_copies = self.download_and_validate(
                 batch, language
             )
 
@@ -241,18 +285,18 @@ class Agent:
 
         return scored
 
-    @staticmethod
     @overload
     def filter_by_model(
+        self,
         articles: List[Article],
         model: MLPRegressor,
         language: Optional[str] = None,
     ) -> List[Article]:  # noqa: D102
         ...
 
-    @staticmethod
     @overload
     def filter_by_model(
+        self,
         articles: List[Article],
         model: MLPRegressor,
         language: Optional[str] = None,
@@ -260,8 +304,8 @@ class Agent:
     ) -> Union[List[Article], Tuple[List[Article], List[Article]]]:  # noqa: D102
         ...
 
-    @staticmethod
     def filter_by_model(
+        self,
         articles: List[Article],
         model: MLPRegressor,
         language: Optional[str] = None,
@@ -280,7 +324,7 @@ class Agent:
             flag is set to True.
             Articles will not be parsed on return.
         """
-        scored = Agent.score_by_model(articles, model, language)
+        scored = self.score_by_model(articles, model, language)
         sorted_by_rating = sorted(scored, reverse=True, key=lambda pair: pair[0])
 
         if include_complement:
@@ -293,7 +337,7 @@ class Agent:
                 else:
                     complement.append(article)
 
-            return (filtered, complement)
+            return filtered, complement
 
         return [zipped[1] for zipped in sorted_by_rating]
 
@@ -311,7 +355,7 @@ class Agent:
             source_url = article.source_url
             path = urlparse(article.url).path
 
-            if not source_url in seen_dict:
+            if source_url not in seen_dict:
                 seen_dict[source_url] = []
 
             has_been_seen = False
@@ -334,7 +378,7 @@ class Agent:
 
         :param articles: The list of articles
         :param language: The language to filter by
-        :return: A filterd list where all the articles are the right language
+        :return: A filtered list where all the articles are the right language
         """
         language_filter = create_language_filter(language)
         return [article for article in articles if language_filter(article)]
@@ -357,6 +401,6 @@ class Agent:
         articles = self.fetch()
         articles = Agent.filter_duplicates(articles)
         if model is not None:
-            articles = Agent.filter_by_model(articles, model, language)
+            articles = self.filter_by_model(articles, model, language)
         limited = articles[:size]
         return limited
