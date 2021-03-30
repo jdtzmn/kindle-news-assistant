@@ -31,3 +31,12 @@ yarn start --train
 ```bash
 yarn start --test
 ```
+
+## CRON Instructions
+
+To receive the newsletter every weekday at 7am, you can use the following, granted that the project is located at `~/Projects/kindle-news-assistant`:
+
+```
+SHELL=/bin/bash
+0 6 * * 1-5 source ~/Projects/kindle-news-assistant/venv/bin/activate && python3 ~/Projects/kindle-news-assistant/main.py --thread-count=1 --delivery=[delivery-method]
+```

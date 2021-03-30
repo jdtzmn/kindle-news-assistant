@@ -5,6 +5,7 @@ import click
 from newspaper.utils import get_available_languages
 from kindle_news_assistant.model.train import start_training
 from kindle_news_assistant.model.test import start_test
+from kindle_news_assistant.model.clear_cache import clear_cache_dir
 from kindle_news_assistant.model.send import send_articles
 from kindle_news_assistant.delivery.index import GeneralDeliveryMethod
 
@@ -14,6 +15,7 @@ from kindle_news_assistant.delivery.index import GeneralDeliveryMethod
 @click.option(
     "--test", is_flag=True, help="Preview a list compiled by the assistant model."
 )
+@click.option("--clear-cache", is_flag=True, help="Clear the local article cache.")
 @click.option(
     "--lang",
     type=click.Choice(get_available_languages(), case_sensitive=False),
@@ -32,6 +34,7 @@ from kindle_news_assistant.delivery.index import GeneralDeliveryMethod
 def run(
     train: bool,
     test: bool,
+    clear_cache: bool,
     lang: Optional[str],
     delivery: Optional[str],
     thread_count: Optional[int],
@@ -50,6 +53,8 @@ def run(
         start_training(lang, thread_count)
     elif test:
         start_test(lang, thread_count)
+    elif clear_cache:
+        clear_cache_dir()
     else:
         send_articles(lang, thread_count, delivery)
 

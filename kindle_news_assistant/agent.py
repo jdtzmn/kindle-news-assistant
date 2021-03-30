@@ -21,7 +21,7 @@ from typing_extensions import Literal
 import newspaper
 from newspaper.article import Article
 from newspaper.utils import get_available_languages
-from sklearn.neural_network import MLPRegressor  # type: ignore
+from sklearn.pipeline import Pipeline
 from tqdm import tqdm
 from kindle_news_assistant.safe_open import safe_open
 from kindle_news_assistant.word_extractor import article_to_frequency
@@ -240,7 +240,7 @@ class Agent:
         return valid_articles, downloaded_copies
 
     def score_by_model(
-        self, articles: List[Article], model: MLPRegressor, language: Optional[str]
+        self, articles: List[Article], model: Pipeline, language: Optional[str]
     ):
         """Score articles by using the learned regression model.
 
@@ -290,7 +290,7 @@ class Agent:
     def filter_by_model(
         self,
         articles: List[Article],
-        model: MLPRegressor,
+        model: Pipeline,
         language: Optional[str] = None,
     ) -> List[Article]:  # noqa: D102
         ...
@@ -299,7 +299,7 @@ class Agent:
     def filter_by_model(
         self,
         articles: List[Article],
-        model: MLPRegressor,
+        model: Pipeline,
         language: Optional[str] = None,
         include_complement: bool = False,
     ) -> Union[List[Article], Tuple[List[Article], List[Article]]]:  # noqa: D102
@@ -308,7 +308,7 @@ class Agent:
     def filter_by_model(
         self,
         articles: List[Article],
-        model: MLPRegressor,
+        model: Pipeline,
         language: Optional[str] = None,
         include_complement: Optional[bool] = False,
     ) -> Union[List[Article], Tuple[List[Article], List[Article]]]:
@@ -333,7 +333,7 @@ class Agent:
             complement = []
 
             for (rating, article) in sorted_by_rating:
-                if rating >= 0.5:
+                if rating >= 0:
                     filtered.append(article)
                 else:
                     complement.append(article)

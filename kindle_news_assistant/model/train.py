@@ -2,10 +2,16 @@
 from typing import List, Optional
 import click
 from newspaper.article import Article
+from sklearn.preprocessing import StandardScaler
 from sklearn.neural_network import MLPRegressor  # type:ignore
+from sklearn.pipeline import Pipeline
 from kindle_news_assistant.word_extractor import article_to_frequency
 from kindle_news_assistant.agent import Agent
-from kindle_news_assistant.model_storage import model_exists, load_model, store_model
+from kindle_news_assistant.model_storage import (
+    model_exists,
+    load_model,
+    store_model,
+)
 
 SUMMARY_TEXT_LIMIT = 450  # characters
 INITIAL_BATCH_SIZE = 50
@@ -31,27 +37,36 @@ def start_training(language: Optional[str], thread_count: Optional[int]) -> None
     print("Training model...")
 
     if model_exists():
-        perceptron: MLPRegressor = load_model()
+        pipe: Pipeline = load_model()
 
         # Log accuracy
-        accuracy = calculate_accuracy(yes, no, perceptron, agent)
+        accuracy = calculate_accuracy(yes, no, pipe, agent)
         print("Accuracy:")
         percentage_str = str(int(accuracy * 100))
         print(percentage_str + "%")
 
-        # Update model
-        perceptron.partial_fit(X, y)
-    else:
-        perceptron = MLPRegressor(
-            hidden_layer_sizes=(500, 50),
-            verbose=True,
+        # Update the scaler and scale the data
+        pipe.named_steps["scaler"].partial_fit(X)
+        scaled_X = pipe.named_steps["scaler"].transform(  # pylint: disable=invalid-name
+            X
         )
 
-        # Fit model
-        perceptron.fit(X, y)
+        # Update model
+        pipe.named_steps["mlp"].partial_fit(scaled_X, y)
+    else:
+        # Set up pipeline
+        scaler = StandardScaler()
+        perceptron = MLPRegressor(
+            hidden_layer_sizes=(50, 50, 50, 50),
+            verbose=True,
+        )
+        pipe = Pipeline([("scaler", scaler), ("mlp", perceptron)])
+
+        # Scale and fit the model
+        pipe.fit(X, y)
 
     print("Compressing and saving model (this might take a while)...")
-    store_model(perceptron)
+    store_model(pipe)
 
 
 def classify_articles(entries: List[Article]):

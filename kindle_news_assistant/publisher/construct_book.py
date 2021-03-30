@@ -33,6 +33,7 @@ def construct_chapter_content(article: Article) -> str:
             <h1>{article.title}</h1>
             <h2>From {article_source_domain}</h2>
             {without_title_element}
+            <a href="nav.xhtml">← Back to article list</a>
         </section>"""
 
 

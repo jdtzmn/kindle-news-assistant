@@ -1,4 +1,5 @@
 """A delivery method for the ReMarkable tablet."""
+import os
 from datetime import datetime
 import click
 from rmapy.api import Client
@@ -37,6 +38,33 @@ Please confirm that we may open a webpage.",
         """
         return "ReMarkable"
 
+    @staticmethod
+    def convert_issue_to_pdf(book_path: str) -> str:
+        """Convert an epub book file to a pdf format for the remarkable. \
+            Uses calibre command line utility `ebook-convert`.
+
+        :param book_path: The absolute path to the epub file.
+        :raises RuntimeError: Raises exception when calibre
+            command line tools are not installed.
+        :return: The absolute path to the converted pdf file.
+        """
+        book_directory = os.path.dirname(book_path)
+        pdf_path = os.path.join(book_directory, "./issue.pdf")
+        exit_code = os.system(f"ebook-convert {book_path} {pdf_path}")
+
+        if exit_code == 32512:
+            # Try macOS location
+            exit_code = os.system(
+                f"/Applications/calibre.app/Contents/MacOS/ebook-convert {book_path} {pdf_path}"
+            )
+            if exit_code == 32512:
+                raise RuntimeError(
+                    "Calibre command line tools are not installed. \
+Install from https://calibre-ebook.com"
+                )
+        
+        return pdf_path
+
     def deliver_issue(self, absolute_path: str):
         """Deliver issues to the ReMarkable.
 
@@ -59,7 +87,8 @@ Please confirm that we may open a webpage.",
         delivery_folder = delivery_folder_filter[0]
 
         # Upload the issue
-        document = ZipDocument(doc=absolute_path)
+        pdf_path = RemarkableDelivery.convert_issue_to_pdf(absolute_path)
+        document = ZipDocument(doc=pdf_path)
         now = datetime.now()
         document.metadata["VissibleName"] = now.strftime("%d %B, %Y")
         self.client.upload(document, delivery_folder)
